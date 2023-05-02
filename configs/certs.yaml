@@ -1,0 +1,21 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: fargate-scale-webhook
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: fargate-scale-webhook-carts #sidecar-injector-certs Niladri
+  namespace: fargate-scale-webhook
+spec:
+  secretName: fargate-scale-webhook-carts #sidecar-injector-certs
+  dnsNames:
+    - fargate-mutating-webhook.fargate-scale-webhook.svc
+    - fargate-mutating-webhook.fargate-scale-webhook.svc.cluster.local
+    - fargate-mutating-webhook.yogeshsharma.me
+  issuerRef:
+    name: selfsigned-issuer

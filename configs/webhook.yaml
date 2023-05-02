@@ -1,0 +1,25 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: fargate-mutating-webhook
+  annotations:
+    cert-manager.io/inject-ca-from: fargate-scale-webhook/fargate-scale-webhook-carts #sidecar-injector-certs
+webhooks:
+  - name: fargate-mutating-webhook.yogeshsharma.me
+    admissionReviewVersions:
+      - "v1beta1"
+    sideEffects: "None"
+    timeoutSeconds: 30
+    objectSelector:
+      matchLabels:
+        enable-custom-placement-on-fargate: "true"
+    clientConfig:
+      service:
+        name: fargate-mutating-webhook
+        namespace: fargate-scale-webhook
+        path: "/mutate"
+    rules:
+      - operations: [ "CREATE", "UPDATE" ]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]

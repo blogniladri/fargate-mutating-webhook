@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fargate-mutating-webhook
+  namespace: fargate-scale-webhook
+  labels:
+    app: fargate-mutating-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fargate-mutating-webhook
+  template:
+    metadata:
+      labels:
+        app: fargate-mutating-webhook
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      serviceAccountName: fargate-mutating-webhook
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1234
+      containers:
+        - name: server
+          image: 567662573502.dkr.ecr.us-west-2.amazonaws.com/eks-fargate-pod-mutating-hook:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8443
+              name: tls
+            - containerPort: 80
+              name: metrics
+          volumeMounts:
+            - name: webhook-tls-certs
+              mountPath: /etc/webhook/certs/
+              readOnly: true
+      volumes:
+        - name: webhook-tls-certs
+          secret:
+            secretName: fargate-scale-webhook-carts #sidecar-injector-certs

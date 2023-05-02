@@ -1,0 +1,41 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: test
+    
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: test
+  annotations:
+    custom-hpa-strategy: 'node-pod-max-count=1'
+spec:
+  selector:
+    matchLabels:
+      app: nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: nginx
+        enable-custom-placement-on-fargate: "true"
+    spec:
+      containers:
+      - image: public.ecr.aws/nginx/nginx:latest
+        imagePullPolicy: Always
+        name: nginx
+        resources:
+          limits:
+            cpu:  400m
+            memory: 1600Mi
+          requests:
+            cpu: 400m
+            memory: 1600Mi        
+        ports:
+        - name: http
+          containerPort: 80
+
