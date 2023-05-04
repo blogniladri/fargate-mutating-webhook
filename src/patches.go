@@ -27,13 +27,21 @@ func createPatch(pod corev1.Pod) ([]patchOperation, error) { //, sidecarConfig *
 	annotations := pod.ObjectMeta.Annotations
 	schedulerName := "default-scheduler"
 
-	if isFargateTarget(pod) {
+	nodePodCnt := getNodePodCount(pod)
+	customHpaStrategy, fargate_profile_name := getCustomHpaStrategy(pod)
+
+	logger.Info("isFargateTarget() nodePodCnt ", nodePodCnt)
+	logger.Info("isFargateTarget() node-pod-max-count ", customHpaStrategy)
+
+	logger.Info("isFargateTarget() returning ", (nodePodCnt >= customHpaStrategy))
+
+	if nodePodCnt >= customHpaStrategy { //is fargate
 		labels["custom-hpa-enabled"] = "1"
 		annotations["controller.kubernetes.io/pod-deletion-cost"] = "0"
 		schedulerName = "fargate-scheduler"
 
 		fargate_profile_labels := pod.ObjectMeta.Labels
-		fargate_profile_labels["eks.amazonaws.com/fargate-profile"] = getFargateProfileName(pod)
+		fargate_profile_labels["eks.amazonaws.com/fargate-profile"] = fargate_profile_name
 
 		patches = append(patches, patchOperation{
 			Op:    "add",
@@ -70,24 +78,24 @@ func createPatch(pod corev1.Pod) ([]patchOperation, error) { //, sidecarConfig *
 	return patches, nil
 }
 
-func isFargateTarget(pod corev1.Pod) bool {
+// func isFargateTarget(pod corev1.Pod) bool {
 
-	nodePodCnt := getNodePodCount(pod)
-	customHpaStrategy := getCustomHpaStrategy(pod)
+// 	nodePodCnt := getNodePodCount(pod)
+// 	customHpaStrategy := getCustomHpaStrategy(pod)
 
-	logger.Info("isFargateTarget() nodePodCnt ", nodePodCnt)
-	logger.Info("isFargateTarget() node-pod-max-count ", customHpaStrategy)
+// 	logger.Info("isFargateTarget() nodePodCnt ", nodePodCnt)
+// 	logger.Info("isFargateTarget() node-pod-max-count ", customHpaStrategy)
 
-	logger.Info("isFargateTarget() returning ", (nodePodCnt >= customHpaStrategy))
+// 	logger.Info("isFargateTarget() returning ", (nodePodCnt >= customHpaStrategy))
 
-	return (nodePodCnt >= customHpaStrategy)
+// 	return (nodePodCnt >= customHpaStrategy)
 
-}
+// }
 
-//TODO
-func getFargateProfileName(pod corev1.Pod) string {
-	return "test"
-}
+// //TODO
+// func getFargateProfileName(pod corev1.Pod) string {
+// 	return "test"
+// }
 
 //TODO
 func getNodePodCount(pod corev1.Pod) int {
@@ -133,7 +141,7 @@ func getNodePodCount(pod corev1.Pod) int {
 	return len(pods.Items)
 }
 
-func getCustomHpaStrategy(pod corev1.Pod) int {
+func getCustomHpaStrategy(pod corev1.Pod) (int, string) {
 
 	podNameSplitList := strings.Split(pod.GenerateName, pod.Labels["pod-template-hash"])
 	deploymentName := strings.Trim(podNameSplitList[0], "-")
@@ -143,12 +151,25 @@ func getCustomHpaStrategy(pod corev1.Pod) int {
 		panic(fmt.Errorf("Failed to get latest version of Deployment: %v", getErr))
 	}
 	logger.Info("getCustomHpaStrategy >>>>>>>>> pod.Labels[custom-hpa-strategy]=%s", deploymentData.Annotations["custom-hpa-strategy"])
-	vals := strings.Split(deploymentData.Annotations["custom-hpa-strategy"], "=")
-	node_pod_max_count := 0
-	if vals[0] == "node-pod-max-count" {
-		node_pod_max_count, _ = strconv.Atoi(vals[1])
-	}
-	logger.Info("node_pod_max_count %s ", node_pod_max_count)
 
-	return node_pod_max_count
+	entries := strings.Split(deploymentData.Annotations["custom-hpa-strategy"], ",")
+
+	node_pod_max_count := 0
+	var fargate_name string
+	var e []string
+
+	for i := 0; i < len(entries); i++ {
+
+		e = strings.Split(entries[i], "=")
+		if e[0] == "node-pod-max-count" {
+			node_pod_max_count, _ = strconv.Atoi(e[1])
+		} else if e[0] == "fargate-profile-name" {
+			fargate_name = e[1]
+		}
+	}
+
+	logger.Info("node_pod_max_count %s ", node_pod_max_count)
+	logger.Info("fargate_name %s ", fargate_name)
+
+	return node_pod_max_count, fargate_name
 }

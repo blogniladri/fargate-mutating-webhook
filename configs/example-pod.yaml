@@ -12,7 +12,7 @@ metadata:
   name: nginx
   namespace: test
   annotations:
-    custom-hpa-strategy: 'node-pod-max-count=1'
+    custom-hpa-strategy: 'node-pod-max-count=1,fargate-profile-name=test'
 spec:
   selector:
     matchLabels:
@@ -30,12 +30,28 @@ spec:
         name: nginx
         resources:
           limits:
-            cpu:  400m
-            memory: 1600Mi
+            cpu:  100m
+            memory: 256Mi
           requests:
-            cpu: 400m
-            memory: 1600Mi        
+            cpu: 100m
+            memory: 256Mi        
         ports:
         - name: http
           containerPort: 80
 
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: test
+  labels:
+    app: nginx
+spec:
+  selector:
+    app: nginx
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

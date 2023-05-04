@@ -5,4 +5,3 @@ kubectl delete -f configs/deployment.yaml
 kubectl delete -f configs/rbac.yaml
 kubectl delete -f configs/certs.yaml
 kubectl delete ns fargate-scale-webhook
-kubectl delete ns test
