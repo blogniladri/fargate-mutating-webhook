@@ -23,7 +23,7 @@ spec:
         runAsUser: 1234
       containers:
         - name: server
-          image: 567662573502.dkr.ecr.us-west-2.amazonaws.com/eks-fargate-pod-mutating-hook:latest
+          image: public.ecr.aws/q2l0r7l7/fargate-mutating-webhook:latest #567662573502.dkr.ecr.us-west-2.amazonaws.com/eks-fargate-pod-mutating-hook:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 8443
